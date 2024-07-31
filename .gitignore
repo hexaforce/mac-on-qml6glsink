@@ -1,0 +1,10 @@
+build/
+*.o
+*.qsb
+moc_*
+*.app/
+Makefile
+*.pro.user
+.qmake.stash
+libgstqml6.dylib
+qrc_qmlsink.cpp
