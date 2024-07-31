@@ -54,5 +54,7 @@ gst-inspect-1.0 qml6glsink
 ### そして、サンプルコードで実行してみます。
 ```bash
 cd ../qmlsink 
+qmake
+make
 GST_DEBUG=3 ./build/x86_darwin_generic_mach_o_64bit-Debug/play.app/Contents/MacOS/play
 ```
