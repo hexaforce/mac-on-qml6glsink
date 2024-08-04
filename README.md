@@ -58,3 +58,6 @@ qmake
 make
 GST_DEBUG=3 ./build/x86_darwin_generic_mach_o_64bit-Debug/play.app/Contents/MacOS/play
 ```
+
+### QtCreatorで実行する時はパスを通す必要があります
+![GST_PLUGIN_PATH](GST_PLUGIN_PATH.png)
