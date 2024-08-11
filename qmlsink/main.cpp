@@ -11,56 +11,53 @@ public:
   SetPlaying(GstElement *);
   ~SetPlaying();
 
-  void run ();
+  void run();
 
 private:
-  GstElement * pipeline_;
+  GstElement *pipeline_;
 };
 
-SetPlaying::SetPlaying (GstElement * pipeline)
+SetPlaying::SetPlaying(GstElement *pipeline)
 {
-  this->pipeline_ = pipeline ? static_cast<GstElement *> (gst_object_ref (pipeline)) : NULL;
+  this->pipeline_ = pipeline ? static_cast<GstElement *>(gst_object_ref(pipeline)) : NULL;
 }
 
-SetPlaying::~SetPlaying ()
+SetPlaying::~SetPlaying()
 {
   if (this->pipeline_)
-    gst_object_unref (this->pipeline_);
+    gst_object_unref(this->pipeline_);
 }
 
-void
-SetPlaying::run ()
+void SetPlaying::run()
 {
   if (this->pipeline_)
-    gst_element_set_state (this->pipeline_, GST_STATE_PLAYING);
+    gst_element_set_state(this->pipeline_, GST_STATE_PLAYING);
 }
 
 int main(int argc, char *argv[])
 {
   int ret;
 
-  gst_init (&argc, &argv);
+  gst_init(&argc, &argv);
 
   {
     QGuiApplication app(argc, argv);
 
     QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
 
-    GstElement *pipeline = gst_pipeline_new (NULL);
-    GstElement *src = gst_element_factory_make ("videotestsrc", NULL);
-    GstElement *capsfilter = gst_element_factory_make ("capsfilter", NULL);
-    GstCaps *caps = gst_caps_from_string ("video/x-raw,format=YV12");
-    g_object_set (capsfilter, "caps", caps, NULL);
-    gst_clear_caps (&caps);
-    GstElement *glupload = gst_element_factory_make ("glupload", NULL);
-    /* the plugin must be loaded before loading the qml file to register the
-     * GstGLVideoItem qml item */
-    GstElement *sink = gst_element_factory_make ("qml6glsink", NULL);
-
-    g_assert (src && glupload && sink);
-
-    gst_bin_add_many (GST_BIN (pipeline), src, capsfilter, glupload, sink, NULL);
-    gst_element_link_many (src, capsfilter, glupload, sink, NULL);
+    GstElement *pipeline = gst_parse_launch(R"(
+        udpsrc port=5000 caps="application/x-rtp, media=video, encoding-name=H264, payload=96" !
+        rtph264depay !
+        h264parse !
+        openh264dec !
+        videoconvert !
+        glupload !
+        qml6glsink name=sink
+    )",
+                                            nullptr);
+    g_assert(pipeline);
+    GstElement *sink = gst_bin_get_by_name(GST_BIN(pipeline), "sink");
+    g_assert(sink);
 
     QQmlApplicationEngine engine;
     engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
@@ -69,21 +66,21 @@ int main(int argc, char *argv[])
     QQuickWindow *rootObject;
 
     /* find and set the videoItem on the sink */
-    rootObject = static_cast<QQuickWindow *> (engine.rootObjects().first());
-    videoItem = rootObject->findChild<QQuickItem *> ("videoItem");
-    g_assert (videoItem);
+    rootObject = static_cast<QQuickWindow *>(engine.rootObjects().first());
+    videoItem = rootObject->findChild<QQuickItem *>("videoItem");
+    g_assert(videoItem);
     g_object_set(sink, "widget", videoItem, NULL);
 
-    rootObject->scheduleRenderJob (new SetPlaying (pipeline),
-        QQuickWindow::BeforeSynchronizingStage);
+    rootObject->scheduleRenderJob(new SetPlaying(pipeline),
+                                  QQuickWindow::BeforeSynchronizingStage);
 
     ret = app.exec();
 
-    gst_element_set_state (pipeline, GST_STATE_NULL);
-    gst_object_unref (pipeline);
+    gst_element_set_state(pipeline, GST_STATE_NULL);
+    gst_object_unref(pipeline);
   }
 
-  gst_deinit ();
+  gst_deinit();
 
   return ret;
 }
